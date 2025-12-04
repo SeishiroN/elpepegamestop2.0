@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
 import { Form, Button, Alert } from 'react-bootstrap';
+import ApiService from '../services/ApiService';
 
 function UserRegister({ onClose }) {
   const [formData, setFormData] = useState({
     nombre: '',
-    apellido: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    telefono: '',
-    direccion: ''
+    confirmPassword: ''
   });
 
   const [errors, setErrors] = useState({});
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -37,10 +36,6 @@ function UserRegister({ onClose }) {
       newErrors.nombre = 'El nombre es requerido';
     }
 
-    if (!formData.apellido.trim()) {
-      newErrors.apellido = 'El apellido es requerido';
-    }
-
     if (!formData.email.trim()) {
       newErrors.email = 'El email es requerido';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -59,36 +54,45 @@ function UserRegister({ onClose }) {
       newErrors.confirmPassword = 'Las contraseñas no coinciden';
     }
 
-    if (!formData.telefono.trim()) {
-      newErrors.telefono = 'El teléfono es requerido';
-    }
-
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validateForm();
 
     if (Object.keys(newErrors).length === 0) {
-      // Aquí iría la lógica para enviar el formulario
-      console.log('Datos del registro:', formData);
-      setSubmitStatus('success');
-      
-      // Resetear formulario
-      setTimeout(() => {
-        setFormData({
-          nombre: '',
-          apellido: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-          telefono: '',
-          direccion: ''
+      setIsLoading(true);
+      try {
+        // Enviar datos al backend
+        const response = await ApiService.signup({
+          name: formData.nombre,
+          email: formData.email,
+          password: formData.password
         });
-        setSubmitStatus(null);
-        if (onClose) onClose();
-      }, 2000);
+        
+        console.log('Registro exitoso:', response);
+        setSubmitStatus('success');
+        
+        // Resetear formulario y cerrar después de 2 segundos
+        setTimeout(() => {
+          setFormData({
+            nombre: '',
+            email: '',
+            password: '',
+            confirmPassword: ''
+          });
+          setSubmitStatus(null);
+          if (onClose) onClose();
+        }, 2000);
+        
+      } catch (error) {
+        console.error('Error en registro:', error);
+        setSubmitStatus('error');
+        setErrors({ submit: error.message || 'Error al registrar usuario' });
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       setErrors(newErrors);
       setSubmitStatus('error');
@@ -107,7 +111,7 @@ function UserRegister({ onClose }) {
       {submitStatus === 'error' && (
         <Alert variant="danger" className="mb-3">
           <i className="fas fa-exclamation-circle me-2"></i>
-          Por favor, corrige los errores en el formulario.
+          {errors.submit || 'Por favor, corrige los errores en el formulario.'}
         </Alert>
       )}
 
@@ -123,28 +127,11 @@ function UserRegister({ onClose }) {
             value={formData.nombre}
             onChange={handleChange}
             isInvalid={!!errors.nombre}
-            placeholder="Ingresa tu nombre"
+            placeholder="Ingresa tu nombre completo"
+            disabled={isLoading}
           />
           <Form.Control.Feedback type="invalid">
             {errors.nombre}
-          </Form.Control.Feedback>
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>
-            <i className="fas fa-user me-2"></i>
-            Apellido *
-          </Form.Label>
-          <Form.Control
-            type="text"
-            name="apellido"
-            value={formData.apellido}
-            onChange={handleChange}
-            isInvalid={!!errors.apellido}
-            placeholder="Ingresa tu apellido"
-          />
-          <Form.Control.Feedback type="invalid">
-            {errors.apellido}
           </Form.Control.Feedback>
         </Form.Group>
 
@@ -160,6 +147,7 @@ function UserRegister({ onClose }) {
             onChange={handleChange}
             isInvalid={!!errors.email}
             placeholder="ejemplo@correo.com"
+            disabled={isLoading}
           />
           <Form.Control.Feedback type="invalid">
             {errors.email}
@@ -178,6 +166,7 @@ function UserRegister({ onClose }) {
             onChange={handleChange}
             isInvalid={!!errors.password}
             placeholder="Mínimo 6 caracteres"
+            disabled={isLoading}
           />
           <Form.Control.Feedback type="invalid">
             {errors.password}
@@ -196,48 +185,26 @@ function UserRegister({ onClose }) {
             onChange={handleChange}
             isInvalid={!!errors.confirmPassword}
             placeholder="Repite tu contraseña"
+            disabled={isLoading}
           />
           <Form.Control.Feedback type="invalid">
             {errors.confirmPassword}
           </Form.Control.Feedback>
         </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>
-            <i className="fas fa-phone me-2"></i>
-            Teléfono *
-          </Form.Label>
-          <Form.Control
-            type="tel"
-            name="telefono"
-            value={formData.telefono}
-            onChange={handleChange}
-            isInvalid={!!errors.telefono}
-            placeholder="+56 9 1234 5678"
-          />
-          <Form.Control.Feedback type="invalid">
-            {errors.telefono}
-          </Form.Control.Feedback>
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>
-            <i className="fas fa-map-marker-alt me-2"></i>
-            Dirección (Opcional)
-          </Form.Label>
-          <Form.Control
-            type="text"
-            name="direccion"
-            value={formData.direccion}
-            onChange={handleChange}
-            placeholder="Calle, número, comuna"
-          />
-        </Form.Group>
-
         <div className="d-grid gap-2">
-          <Button variant="primary" type="submit" size="lg">
-            <i className="fas fa-user-plus me-2"></i>
-            Registrarse
+          <Button variant="primary" type="submit" size="lg" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Registrando...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-user-plus me-2"></i>
+                Registrarse
+              </>
+            )}
           </Button>
         </div>
 

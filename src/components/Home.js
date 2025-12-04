@@ -1,7 +1,8 @@
-import React from 'react';
-import { Container, Carousel, Card, Button, Row, Col, Badge } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Container, Carousel, Card, Button, Row, Col, Badge, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import ApiService from '../services/ApiService';
 import switchImg from '../assets/img/switch_2.jpg';
 import ps5Img from '../assets/img/1366_2000.jpg';
 import steamImg from '../assets/img/Steam-Deck.jpg';
@@ -9,47 +10,44 @@ import steamImg from '../assets/img/Steam-Deck.jpg';
 function Home() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const featuredProducts = [
-    {
-      id: 34,
-      nombre: 'Consola Nintendo Switch 2 + Pokémon Legends: Z-A',
-      categoria: 'Nintendo Switch 2',
-      precio: '$599.990',
-      imagen: switchImg,
-      badge: 'Nuevo',
-      badgeVariant: 'success',
-      disponible: true,
-      descripcion: 'Consola Nintendo Switch 2 + Pokémon Legends: Z-A',
-      modelo: 'Nintendo Switch 2',
-      vendedor: 'Nintendo'
-    },
-    {
-      id: 24,
-      nombre: 'Consola Sony PlayStation 5 Slim',
-      categoria: 'PlayStation 5',
-      precio: '$559.990',
-      imagen: ps5Img,
-      badge: 'Popular',
-      badgeVariant: 'primary',
-      disponible: true,
-      descripcion: 'PlayStation 5 Slim',
-      modelo: 'PlayStation 5 Slim',
-      vendedor: 'PlayStation'
-    },
-    {
-      id: 25,
-      nombre: 'Steam Deck 512GB',
-      categoria: 'Handheld',
-      precio: '$799.990',
-      imagen: steamImg,
-      badge: 'Oferta',
-      badgeVariant: 'danger',
-      disponible: true,
-      descripcion: 'Steam Deck 512GB',
-      modelo: 'Steam Deck',
-      vendedor: 'Steam'
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadFeaturedProducts = async () => {
+      try {
+        setLoading(true);
+        const allProducts = await ApiService.getAllProductos();
+        
+        // Seleccionar productos destacados (puedes modificar la lógica)
+        // Por ahora, seleccionamos los primeros 3 productos
+        const featured = allProducts
+          .slice(0, 3)
+          .map(product => ({
+            ...product,
+            badge: product.id === 34 ? 'Nuevo' : product.id === 24 ? 'Popular' : 'Oferta',
+            badgeVariant: product.id === 34 ? 'success' : product.id === 24 ? 'primary' : 'danger'
+          }));
+        
+        setFeaturedProducts(featured);
+      } catch (error) {
+        console.error('Error al cargar productos destacados:', error);
+        // Mantener productos por defecto en caso de error
+        setFeaturedProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFeaturedProducts();
+  }, []);
+
+  const formatPrice = (price) => {
+    if (typeof price === 'string' && price.startsWith('$')) {
+      return price;
     }
-  ];
+    return `$${parseInt(price).toLocaleString('es-CL')}`;
+  };
 
   return (
     <>
@@ -120,39 +118,54 @@ function Home() {
               <p className="section-subtitle">Las mejores ofertas en consolas y accesorios gaming</p>
             </div>
             
-            <Row className="g-4">
-              {featuredProducts.map((product) => (
-                <Col key={product.id} xs={12} md={6} lg={4}>
-                  <Card className="product-card h-100 shadow-sm">
-                    <div className="product-image-wrapper">
-                      <Card.Img variant="top" src={product.imagen} className="product-image" />
-                      <Badge bg={product.badgeVariant} className="product-badge">
-                        {product.badge}
-                      </Badge>
-                    </div>
-                    <Card.Body className="d-flex flex-column">
-                      <div className="mb-2">
-                        <span className="category-label">{product.categoria}</span>
-                      </div>
-                      <Card.Title className="product-title">{product.nombre}</Card.Title>
-                      <div className="mt-auto">
-                        <div className="d-flex justify-content-between align-items-center">
-                          <h4 className="price-text mb-0">{product.precio}</h4>
-                          <Button 
-                            variant="primary" 
-                            className="add-to-cart-btn"
-                            onClick={() => addToCart(product)}
-                          >
-                            <i className="fas fa-shopping-cart me-2"></i>
-                            Agregar
-                          </Button>
+            {loading ? (
+              <div className="text-center py-5">
+                <Spinner animation="border" role="status" variant="primary">
+                  <span className="visually-hidden">Cargando...</span>
+                </Spinner>
+                <p className="mt-3">Cargando productos destacados...</p>
+              </div>
+            ) : (
+              <Row className="g-4">
+                {featuredProducts.length > 0 ? (
+                  featuredProducts.map((product) => (
+                    <Col key={product.id} xs={12} md={6} lg={4}>
+                      <Card className="product-card h-100 shadow-sm">
+                        <div className="product-image-wrapper">
+                          <Card.Img variant="top" src={product.imagen} className="product-image" />
+                          <Badge bg={product.badgeVariant} className="product-badge">
+                            {product.badge}
+                          </Badge>
                         </div>
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
+                        <Card.Body className="d-flex flex-column">
+                          <div className="mb-2">
+                            <span className="category-label">{product.categoria}</span>
+                          </div>
+                          <Card.Title className="product-title">{product.nombre}</Card.Title>
+                          <div className="mt-auto">
+                            <div className="d-flex justify-content-between align-items-center">
+                              <h4 className="price-text mb-0">{formatPrice(product.precio)}</h4>
+                              <Button 
+                                variant="primary" 
+                                className="add-to-cart-btn"
+                                onClick={() => addToCart(product)}
+                              >
+                                <i className="fas fa-shopping-cart me-2"></i>
+                                Agregar
+                              </Button>
+                            </div>
+                          </div>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  ))
+                ) : (
+                  <Col xs={12} className="text-center">
+                    <p>No hay productos destacados disponibles</p>
+                  </Col>
+                )}
+              </Row>
+            )}
           </section>
 
           <section className="categories-section py-5">
