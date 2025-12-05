@@ -16,7 +16,18 @@ function ShoppingCart() {
   const handleClose = () => setShowCart(false);
 
   const formatPrice = (price) => {
-    return `$${parseFloat(price.replace('$', '').replace('.', '')).toLocaleString('es-CL')}`;
+    if (!price) return '$0';
+    if (typeof price === 'number') {
+      return `$${price.toLocaleString('es-CL')}`;
+    }
+    if (typeof price === 'string') {
+      if (price.startsWith('$')) {
+        return price;
+      }
+      const numPrice = parseFloat(price.replace(/\D/g, ''));
+      return `$${numPrice.toLocaleString('es-CL')}`;
+    }
+    return '$0';
   };
 
   return (

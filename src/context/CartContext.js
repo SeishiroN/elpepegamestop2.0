@@ -24,7 +24,16 @@ export const CartProvider = ({ children }) => {
             : item
         );
       }
-      return [...prevItems, { ...product, quantity: 1 }];
+      // Normalize product properties to handle both English and Spanish names
+      const normalizedProduct = {
+        id: product.id,
+        nombre: product.nombre || product.name,
+        precio: product.precio || product.price,
+        imagen: product.imagen || product.imageUrl,
+        category: product.category || product.categoria,
+        quantity: 1
+      };
+      return [...prevItems, normalizedProduct];
     });
   };
 
@@ -50,7 +59,12 @@ export const CartProvider = ({ children }) => {
 
   const getCartTotal = () => {
     return cartItems.reduce((total, item) => {
-      const price = parseFloat(item.precio.replace('$', '').replace('.', ''));
+      let price = 0;
+      if (typeof item.precio === 'number') {
+        price = item.precio;
+      } else if (typeof item.precio === 'string') {
+        price = parseFloat(item.precio.replace('$', '').replace(/\./g, ''));
+      }
       return total + (price * item.quantity);
     }, 0);
   };

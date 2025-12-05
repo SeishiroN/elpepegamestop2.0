@@ -132,19 +132,27 @@ function Home() {
                     <Col key={product.id} xs={12} md={6} lg={4}>
                       <Card className="product-card h-100 shadow-sm">
                         <div className="product-image-wrapper">
-                          <Card.Img variant="top" src={product.imagen} className="product-image" />
+                          <Card.Img 
+                            variant="top" 
+                            src={product.imageUrl || product.imagen || 'https://via.placeholder.com/300x300?text=Sin+Imagen'} 
+                            className="product-image"
+                            onError={(e) => {
+                              console.error('Error loading image for product:', product.name, product.imageUrl);
+                              e.target.src = 'https://via.placeholder.com/300x300?text=Sin+Imagen';
+                            }}
+                          />
                           <Badge bg={product.badgeVariant} className="product-badge">
                             {product.badge}
                           </Badge>
                         </div>
                         <Card.Body className="d-flex flex-column">
                           <div className="mb-2">
-                            <span className="category-label">{product.categoria}</span>
+                            <span className="category-label">{product.category}</span>
                           </div>
-                          <Card.Title className="product-title">{product.nombre}</Card.Title>
+                          <Card.Title className="product-title">{product.name}</Card.Title>
                           <div className="mt-auto">
                             <div className="d-flex justify-content-between align-items-center">
-                              <h4 className="price-text mb-0">{formatPrice(product.precio)}</h4>
+                              <h4 className="price-text mb-0">{formatPrice(product.price)}</h4>
                               <Button 
                                 variant="primary" 
                                 className="add-to-cart-btn"

@@ -44,14 +44,88 @@ function CategoryPage({ category, type = 'perifericos' }) {
         setLoading(true);
         setError(null);
         
-        // Obtener productos filtrados por subcategoría
+        // Obtener todos los productos
         const allProducts = await ApiService.getAllProductos();
         
-        // Filtrar productos según la categoría
-        // Por ahora, mostramos todos los productos ya que no tenemos subcategorías en la DB
+        // Filtrar productos según el tipo y categoría
         const filteredProducts = allProducts.filter(product => {
-          // Puedes agregar lógica de filtrado cuando tengas el campo category en la DB
-          return true;
+          if (!product.category) return false;
+          
+          const productCategory = product.category.toLowerCase();
+          
+          // Si el tipo es 'perifericos', filtrar por categoría específica (teclados, mouse, etc.)
+          if (type === 'perifericos') {
+            // El campo category en la DB debe coincidir con el tipo general
+            // pero filtramos por el nombre del producto para las subcategorías específicas
+            if (productCategory !== 'perifericos') return false;
+            
+            // Filtrado adicional por nombre del producto para subcategorías
+            const productName = product.name ? product.name.toLowerCase() : '';
+            
+            switch(category) {
+              case 'teclados':
+                return productName.includes('teclado') || productName.includes('keyboard');
+              case 'mouse':
+                return productName.includes('mouse') || productName.includes('ratón');
+              case 'audifonos':
+                return productName.includes('audífono') || productName.includes('headset') || 
+                       productName.includes('auricular');
+              case 'volantes':
+                return productName.includes('volante') || productName.includes('wheel') || 
+                       productName.includes('racing');
+              case 'controles':
+                return productName.includes('control') || productName.includes('gamepad') || 
+                       productName.includes('joystick') || productName.includes('dualsense');
+              default:
+                return true;
+            }
+          }
+          
+          // Para consolas, filtrar por categoría y nombre del producto
+          if (type === 'consolas') {
+            // Verificar si es una consola
+            if (productCategory !== 'consolas') return false;
+            
+            const productName = product.name ? product.name.toLowerCase() : '';
+            
+            switch(category) {
+              case 'playstation':
+                return productName.includes('playstation') || productName.includes('ps5') || 
+                       productName.includes('ps4') || productName.includes('sony');
+              case 'nintendo':
+                return productName.includes('nintendo') || productName.includes('switch');
+              case 'xbox':
+                return productName.includes('xbox') || productName.includes('microsoft');
+              case 'portable':
+                return productName.includes('portable') || productName.includes('steam deck') || 
+                       productName.includes('handheld') || productName.includes('switch lite');
+              default:
+                return true;
+            }
+          }
+          
+          // Para juegos, filtrar por categoría y nombre del producto
+          if (type === 'juegos') {
+            // Verificar si es un juego
+            if (productCategory !== 'juegos') return false;
+            
+            const productName = product.name ? product.name.toLowerCase() : '';
+            
+            switch(category) {
+              case 'ps5':
+                return productName.includes('ps5') || productName.includes('playstation 5');
+              case 'ps4':
+                return productName.includes('ps4') || productName.includes('playstation 4');
+              case 'switch':
+                return productName.includes('switch') || productName.includes('nintendo');
+              case 'xbox':
+                return productName.includes('xbox');
+              default:
+                return true;
+            }
+          }
+          
+          return false;
         });
         
         setProducts(filteredProducts);
@@ -136,9 +210,13 @@ function CategoryPage({ category, type = 'perifericos' }) {
                   <div className="product-image-container">
                     <Card.Img 
                       variant="top" 
-                      src={product.imageUrl} 
+                      src={product.imageUrl || product.imagen || 'https://via.placeholder.com/300x300?text=Sin+Imagen'} 
                       alt={product.name}
                       className="product-image-detail"
+                      onError={(e) => {
+                        console.error('Error loading image:', product.imageUrl);
+                        e.target.src = 'https://via.placeholder.com/300x300?text=Sin+Imagen';
+                      }}
                     />
                     {product.stock === 0 && (
                       <Badge bg="danger" className="unavailable-badge">
